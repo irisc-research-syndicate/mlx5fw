@@ -25,7 +25,7 @@ pub fn calc_hwcrc(mut crc: u16, data: &[u8]) -> u16 {
 }
 
 pub fn calc_crc16(mut crc: u16, data: &[u8]) -> u16 {
-    crc = crc ^ 0xffffu16;
+    crc ^= 0xffffu16;
     for mut byte in data.iter().cloned() {
         for _ in 0..8 {
             let poly = if crc & 0x8000 != 0 { 0x100b } else { 0x0000 };
@@ -38,7 +38,7 @@ pub fn calc_crc16(mut crc: u16, data: &[u8]) -> u16 {
 
 #[allow(dead_code)]
 pub fn calc_crc16_words(mut crc: u16, data: &[u32]) -> u16 {
-    crc = crc ^ 0xffffu16;
+    crc ^= 0xffffu16;
     for mut word in data.iter().cloned() {
         for _ in 0..=31 {
             let poly = if crc & 0x8000 != 0 { 0x100b } else { 0x0000 };
