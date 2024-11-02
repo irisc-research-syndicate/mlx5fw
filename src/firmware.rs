@@ -1,6 +1,6 @@
 use anyhow::{ensure, Result};
-use std::path::Path;
 use deku::prelude::*;
+use std::path::Path;
 
 use crate::structures::itoc::ItocEntry;
 
@@ -46,7 +46,7 @@ impl Firmware {
         let mut itoc = vec![];
 
         for offset in (0x4020..).step_by(32) {
-            if self[offset..offset+32] == [0xffu8; 32] {
+            if self[offset..offset + 32] == [0xffu8; 32] {
                 break;
             }
             itoc.push(FirmwareStructure::read(self, offset)?);
@@ -75,8 +75,11 @@ impl<T> std::ops::DerefMut for FirmwareStructure<T> {
 
 impl<T> FirmwareStructure<T> {
     pub fn write_bytes(&self, firmware: &mut Firmware, value: &[u8]) -> Result<()> {
-        ensure!(self.0 + value.len() < firmware.len(), "Firmware structure out of bounds");
-        firmware[self.0..self.0+value.len()].copy_from_slice(value);
+        ensure!(
+            self.0 + value.len() < firmware.len(),
+            "Firmware structure out of bounds"
+        );
+        firmware[self.0..self.0 + value.len()].copy_from_slice(value);
         Ok(())
     }
 }
@@ -92,7 +95,6 @@ impl<'a> FirmwareStructure<&'a [u8]> {
         let inner = T::from_bytes((self.1, 0))?.1;
         Ok(FirmwareStructure(self.0, inner))
     }
-
 }
 
 impl<'a, T: DekuContainerRead<'a>> FirmwareStructure<T> {

@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use clap::{Parser, Subcommand};
 use anyhow::{ensure, Context, Result};
+use clap::{Parser, Subcommand};
 use deku::prelude::*;
+use std::path::PathBuf;
 
 pub mod crc;
 pub mod firmware;
@@ -11,7 +11,8 @@ use firmware::Firmware;
 
 fn show_sections(firmware: Firmware) -> Result<()> {
     for (i, itoc_entry) in firmware.read_itoc()?.iter().enumerate() {
-        println!("{:2} {:#010x}/{:#010x} {:#010x} {:#010x}: {} {} {}",
+        println!(
+            "{:2} {:#010x}/{:#010x} {:#010x} {:#010x}: {} {} {}",
             i,
             itoc_entry.flash_addr,
             itoc_entry.size,
@@ -29,7 +30,13 @@ fn dump_sections(firmware: Firmware, dir: &PathBuf) -> Result<()> {
     std::fs::create_dir(dir).context("Failed to create output directory")?;
     for itoc_entry in firmware.read_itoc()? {
         let content = firmware.slice(itoc_entry.flash_addr, itoc_entry.size);
-        std::fs::write(dir.join(format!("{:08x}_{}", itoc_entry.flash_addr, itoc_entry.entry_type)), content.1)?;
+        std::fs::write(
+            dir.join(format!(
+                "{:08x}_{}",
+                itoc_entry.flash_addr, itoc_entry.entry_type
+            )),
+            content.1,
+        )?;
     }
     Ok(())
 }
@@ -39,7 +46,10 @@ fn dump_code(firmware: Firmware, dir: &PathBuf) -> Result<()> {
     for itoc_entry in firmware.read_itoc()? {
         if itoc_entry.entry_type.is_code() {
             let content = &firmware[itoc_entry.flash_addr..][..itoc_entry.size];
-            let section_path = dir.join(format!("{:08x}_{}", itoc_entry.load_address, itoc_entry.entry_type));
+            let section_path = dir.join(format!(
+                "{:08x}_{}",
+                itoc_entry.load_address, itoc_entry.entry_type
+            ));
             if itoc_entry.cache_line_crc {
                 let mut code = vec![];
                 for chunk in content.chunks(0x44) {
@@ -58,12 +68,16 @@ fn dump_code(firmware: Firmware, dir: &PathBuf) -> Result<()> {
 
 fn replace_section(mut firmware: Firmware, args: CliReplaceSection) -> Result<()> {
     let itoc = firmware.read_itoc()?;
-    ensure!(args.section_index < itoc.len(), "Section index out of range");
+    ensure!(
+        args.section_index < itoc.len(),
+        "Section index out of range"
+    );
 
     let mut itoc_entry = itoc[args.section_index].clone();
 
     let section_content = if itoc_entry.cache_line_crc && !args.no_fix_cache_line_crc {
-        let section = std::fs::read(args.section_content).context("Could not read new section content")?;
+        let section =
+            std::fs::read(args.section_content).context("Could not read new section content")?;
         let mut content = vec![];
         for cache_line in section.chunks(0x40) {
             let mut cache_line = cache_line.to_vec();
@@ -76,7 +90,10 @@ fn replace_section(mut firmware: Firmware, args: CliReplaceSection) -> Result<()
         std::fs::read(args.section_content).context("Could not read new section content")?
     };
 
-    ensure!(section_content.len() <= itoc_entry.size, "New Section content is too big");
+    ensure!(
+        section_content.len() <= itoc_entry.size,
+        "New Section content is too big"
+    );
 
     let section = firmware.slice_ptr(itoc_entry.flash_addr, itoc_entry.size);
     section.write_bytes(&mut firmware, &section_content)?;
@@ -94,9 +111,9 @@ fn replace_section(mut firmware: Firmware, args: CliReplaceSection) -> Result<()
 
 #[derive(Debug, Clone, Parser)]
 struct CliReplaceSection {
-    #[arg(long, default_value_t=false)]
+    #[arg(long, default_value_t = false)]
     no_update_itoc: bool,
-    #[arg(long, default_value_t=false)]
+    #[arg(long, default_value_t = false)]
     no_fix_cache_line_crc: bool,
 
     section_index: usize,
@@ -106,25 +123,21 @@ struct CliReplaceSection {
 
 #[derive(Debug, Clone, Subcommand)]
 enum CliCommand {
-    #[command(name="showsections")]
+    #[command(name = "showsections")]
     ShowSections,
-    #[command(name="dumpsections")]
-    DumpSections {
-        dir: PathBuf
-    },
-    #[command(name="dumpcode")]
-    DumpCode {
-        dir: PathBuf
-    },
-    #[command(name="replacesection")]
-    ReplaceSection(CliReplaceSection)
+    #[command(name = "dumpsections")]
+    DumpSections { dir: PathBuf },
+    #[command(name = "dumpcode")]
+    DumpCode { dir: PathBuf },
+    #[command(name = "replacesection")]
+    ReplaceSection(CliReplaceSection),
 }
 
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
     firmware_path: PathBuf,
     #[command(subcommand)]
-    command: CliCommand
+    command: CliCommand,
 }
 
 fn main() -> Result<()> {
