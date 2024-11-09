@@ -2,7 +2,7 @@ use anyhow::{ensure, Result};
 use deku::prelude::*;
 use std::path::Path;
 
-use crate::structures::itoc::ItocEntry;
+use crate::structures::{hwpointers::{Boot2, HwPointers}, itoc::ItocEntry};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Firmware(pub Vec<u8>);
@@ -42,11 +42,21 @@ impl Firmware {
         FirmwareStructure(offset, size)
     }
 
-    pub fn read_itoc(&self) -> Result<Vec<FirmwareStructure<ItocEntry>>> {
+    pub fn hwpointers(&self) -> Result<FirmwareStructure<HwPointers>> {
+        Ok(FirmwareStructure::read(self, 0x18)?)
+    }
+
+    pub fn boot2(&self) -> Result<FirmwareStructure<Boot2>> {
+        let hwpointers = self.hwpointers()?;
+        Ok(FirmwareStructure::read(self ,hwpointers.boot2.ptr)?)
+    }
+
+    pub fn itoc(&self) -> Result<Vec<FirmwareStructure<ItocEntry>>> {
+        let hwpointers = self.hwpointers()?;
         let mut itoc = vec![];
 
-        for offset in (0x4020..).step_by(32) {
-            if self[offset..offset + 32] == [0xffu8; 32] {
+        for offset in (hwpointers.toc.ptr + 0x20..).step_by(0x20) {
+            if self[offset..offset + 0x20] == [0xffu8; 0x20] {
                 break;
             }
             itoc.push(FirmwareStructure::read(self, offset)?);

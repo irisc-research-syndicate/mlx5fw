@@ -10,7 +10,7 @@ pub mod structures;
 use firmware::Firmware;
 
 fn show_sections(firmware: Firmware) -> Result<()> {
-    for (i, itoc_entry) in firmware.read_itoc()?.iter().enumerate() {
+    for (i, itoc_entry) in firmware.itoc()?.iter().enumerate() {
         println!(
             "{:2} {:#010x}/{:#010x} {:#010x} {:#010x}: {} {} {}",
             i,
@@ -28,7 +28,7 @@ fn show_sections(firmware: Firmware) -> Result<()> {
 
 fn dump_sections(firmware: Firmware, dir: &PathBuf) -> Result<()> {
     std::fs::create_dir(dir).context("Failed to create output directory")?;
-    for itoc_entry in firmware.read_itoc()? {
+    for itoc_entry in firmware.itoc()? {
         let content = firmware.slice(itoc_entry.flash_addr, itoc_entry.size);
         std::fs::write(
             dir.join(format!(
@@ -43,7 +43,7 @@ fn dump_sections(firmware: Firmware, dir: &PathBuf) -> Result<()> {
 
 fn dump_code(firmware: Firmware, dir: &PathBuf) -> Result<()> {
     std::fs::create_dir(dir).context("Failed to create output directory")?;
-    for itoc_entry in firmware.read_itoc()? {
+    for itoc_entry in firmware.itoc()? {
         if itoc_entry.entry_type.is_code() {
             let content = &firmware[itoc_entry.flash_addr..][..itoc_entry.size];
             let section_path = dir.join(format!(
@@ -67,7 +67,7 @@ fn dump_code(firmware: Firmware, dir: &PathBuf) -> Result<()> {
 }
 
 fn replace_section(mut firmware: Firmware, args: CliReplaceSection) -> Result<()> {
-    let itoc = firmware.read_itoc()?;
+    let itoc = firmware.itoc()?;
     ensure!(
         args.section_index < itoc.len(),
         "Section index out of range"
@@ -123,13 +123,13 @@ struct CliReplaceSection {
 
 #[derive(Debug, Clone, Subcommand)]
 enum CliCommand {
-    #[command(name = "showsections")]
+    #[command(name = "show-sections")]
     ShowSections,
-    #[command(name = "dumpsections")]
+    #[command(name = "dump-sections")]
     DumpSections { dir: PathBuf },
-    #[command(name = "dumpcode")]
+    #[command(name = "dump-code")]
     DumpCode { dir: PathBuf },
-    #[command(name = "replacesection")]
+    #[command(name = "replace-section")]
     ReplaceSection(CliReplaceSection),
 }
 
